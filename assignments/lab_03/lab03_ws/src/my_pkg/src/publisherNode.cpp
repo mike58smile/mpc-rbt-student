@@ -36,14 +36,24 @@ public:
     // Subscriber definition
     subscriber_ = this->create_subscription<std_msgs::msg::Float32>("battery_voltage",10, 			std::bind(&PubSubNode::topic_callback, this, _1));
     
+    // Publisher definition
+    publisher2_ = this->create_publisher<std_msgs::msg::Float32>("battery_percentage", 10);
+    
     timer_ = this->create_wall_timer(
       500ms, std::bind(&PubSubNode::timer_callback, this));
+      
   }
 
 private:
+  
   void topic_callback(const std_msgs::msg::Float32::SharedPtr msg) const
   {
-    RCLCPP_INFO(this->get_logger(), "%f", msg->data);
+    float meas = msg->data;
+    RCLCPP_INFO(this->get_logger(), "%f", meas);
+    float percentage = (meas - 32)/(42-32)*100;
+    auto response = std_msgs::msg::Float32();
+    response.data = percentage;
+    publisher2_->publish(response);
   }
   rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr subscriber_;
   
@@ -56,6 +66,8 @@ private:
   }
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher2_;
+  
   size_t count_;
 };
 
