@@ -1,0 +1,25 @@
+mpc_rbt_ws
+- rosdep install --from-paths src -y -r --ignore-src --rosdistro humble
+
+
+Spustenie simulatora
+Navigate to the workspace directory (mpc_rbt_ws) and build it:
+
+colcon build
+
+Set up the environment for the workspace:
+
+source install/setup.bash
+
+Launch the project (including the simulation) using:
+
+ros2 launch mpc_rbt_simulator simulation.launch.py
+
+
+
+Spustenie node
+from dir mpc-rbt-student
+source install/setup.bash
+ros2 run mpc_rbt_student KeyboardControl
+
+
