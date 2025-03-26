@@ -2,6 +2,8 @@ mpc_rbt_ws
 - rosdep install --from-paths src -y -r --ignore-src --rosdistro humble
 
 
+
+
 Spustenie simulatora
 Navigate to the workspace directory (mpc_rbt_ws) and build it:
 
@@ -19,7 +21,24 @@ ros2 launch mpc_rbt_simulator simulation.launch.py
 
 Spustenie node
 from dir mpc-rbt-student
+
 source install/setup.bash
+colcon build
 ros2 run mpc_rbt_student KeyboardControl
 
+Zoznam params
+ros2 param list /keyboard_control_node
+
+Ziskat param
+ros2 param get /keyboard_control_node speed
+
+Nastavit param
+ros2 param set /keyboard_control_node speed 1.0
+
+
+
+
+----GIT-----
+ak som dal clone https
+git remote set-url origin git@github.com:mike58smile/mpc-rbt-student.git
 

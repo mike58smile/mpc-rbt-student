@@ -9,7 +9,10 @@
 
 using namespace std::chrono_literals;
 
-KeyboardControlNode::KeyboardControlNode(): rclcpp::Node("keyboard_control_node") {
+KeyboardControlNode::KeyboardControlNode() : rclcpp::Node("keyboard_control_node") {
+    // Declare and initialize the speed parameter
+    this->declare_parameter<double>("speed", 5.0); // Default speed is 0.5
+    speed_ = this->get_parameter("speed").as_double();
 
     twist_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
     timer_ = this->create_wall_timer(10ms, std::bind(&KeyboardControlNode::timer_callback, this));
@@ -57,20 +60,20 @@ KeyboardControlNode::KeyboardControlNode(): rclcpp::Node("keyboard_control_node"
                     char seq[2];
                     if (read(STDIN_FILENO, &seq, 2) != 2)
                         return;
-    
+                    speed_ = this->get_parameter("speed").as_double();
                     if (seq[0] == '[') {
                         switch (seq[1]) {
                             case 'A':
-                                twist.linear.x = 0.5;  // up arrow
+                                twist.linear.x = speed_;  // up arrow
                                 break;
                             case 'B':
-                                twist.linear.x = -0.5; // down arrow
+                                twist.linear.x = -speed_; // down arrow
                                 break;
                             case 'C':
-                                twist.angular.z = -0.5; // right arrow
+                                twist.angular.z = -speed_; // right arrow
                                 break;
                             case 'D':
-                                twist.angular.z = 0.5;  // left arrow
+                                twist.angular.z = speed_;  // left arrow
                                 break;
                         }
                     }

@@ -21,6 +21,8 @@ private:
     rclcpp::TimerBase::SharedPtr timer_;
     struct termios old_termios_;
     geometry_msgs::msg::Twist twist_msg_; // Add this line
+
+    double speed_;
 };
 
 #endif // KEYBOARD_CONTROL_HPP
