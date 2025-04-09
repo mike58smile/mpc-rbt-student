@@ -31,6 +31,8 @@ private:
 
     nav_msgs::msg::Odometry odometry_;
     rclcpp::Time last_time_;
+    rclcpp::TimerBase::SharedPtr timer_;  // Declare the timer
+
 };
 
 #endif // LOCALIZATION_HPP
