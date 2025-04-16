@@ -10,15 +10,15 @@ def generate_launch_description():
 
     return LaunchDescription([
         # Launch the LocalizationNode
-        Node(
-            package='mpc_rbt_student',
-            executable='LocalizationNode',
-            name='localization_node',
-            output='screen',
-            parameters=[
-                # Add any parameters here if needed
-            ]
-        ),
+        # Node(
+        #     package='mpc_rbt_student',
+        #     executable='LocalizationNode',
+        #     name='localization_node',
+        #     output='screen',
+        #     parameters=[
+        #         # Add any parameters here if needed
+        #     ]
+        # ),
         # Launch RViz with the specified configuration
         Node(
             package='rviz2',
@@ -26,5 +26,11 @@ def generate_launch_description():
             name='rviz2',
             output='screen',
             arguments=['-d', rviz_config_path]
-        )
+        ),
+        Node(
+            package='mpc_rbt_student',
+            executable='PlanningNode',
+            name='planning_node',
+            output='screen'
+        ),
     ])

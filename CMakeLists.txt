@@ -44,6 +44,7 @@ set(dependencies
 add_library(${PROJECT_NAME} SHARED
   src/KeyboardControl.cpp
   src/Localization.cpp
+  src/Planning.cpp
 )
 ament_target_dependencies(${PROJECT_NAME} ${dependencies})
 install(TARGETS ${PROJECT_NAME}
@@ -59,6 +60,12 @@ install(TARGETS KeyboardControl DESTINATION lib/${PROJECT_NAME})
 add_executable(LocalizationNode src/localization_node.cpp)
 target_link_libraries(LocalizationNode ${PROJECT_NAME})
 install(TARGETS LocalizationNode DESTINATION lib/${PROJECT_NAME})
+
+# Add PlanningNode
+add_executable(PlanningNode src/planning_node.cpp)
+target_link_libraries(PlanningNode ${PROJECT_NAME})
+ament_target_dependencies(PlanningNode ${dependencies})
+install(TARGETS PlanningNode DESTINATION lib/${PROJECT_NAME})
 
 #Define include directories for the compiler
 #include_directories(PUBLIC
