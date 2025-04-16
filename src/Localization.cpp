@@ -82,10 +82,15 @@ void LocalizationNode::publishOdometry() {
 }
 
 void LocalizationNode::publishTransform() {
-    // add code here
-    
-    // ********
-    // * Help *
-    // ********
-    //tf_broadcaster_->sendTransform(t);
+    geometry_msgs::msg::TransformStamped t;
+    t.header.stamp = this->get_clock()->now();
+    t.header.frame_id = "map";         // Parent frame
+    t.child_frame_id = "base_link";    // Child frame
+
+    t.transform.translation.x = odometry_.pose.pose.position.x;
+    t.transform.translation.y = odometry_.pose.pose.position.y;
+    t.transform.translation.z = odometry_.pose.pose.position.z;
+    t.transform.rotation = odometry_.pose.pose.orientation;
+
+    tf_broadcaster_->sendTransform(t);
 }

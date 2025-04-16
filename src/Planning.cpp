@@ -127,14 +127,13 @@ void PlanningNode::aStar(const geometry_msgs::msg::PoseStamped &start, const geo
     while (!openList.empty()) {
         auto current = openList.top();
         openList.pop();
-
+        closedList[idx(current->x, current->y)] = true;
+        
         if (current->x == gx && current->y == gy) {
             found = true;
             goalCell = current;
             break;
         }
-
-        closedList[idx(current->x, current->y)] = true;
 
         for (auto& d : directions) {
             int nx = current->x + d.first;
