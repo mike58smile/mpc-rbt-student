@@ -1,8 +1,48 @@
+--------------------------------------
+CONSOLE-------
+RUN SIMULATOR
+source install/setup.bash
+ros2 launch mpc_rbt_simulator simulation.launch.py
+
+RUN RVIZ, LOCALIZATION NODE
+source install/setup.bash
+ros2 launch mpc_rbt_student solution.launch.py
+
+RUN OTHER NODES
+source ~/stud/mpc_rbt_ws/install/setup.bash
+ros2 run mpc_rbt_student PlanningNode
+--------------
+
+CONSOLE-------
+source install/setup.bash
+ros2 run mpc_rbt_student KeyboardControl
+--------------
+
+PLANNING --------------
+NORM PATH
+ros2 service call /plan_path nav_msgs/srv/GetPlan "{
+  start: {header: {frame_id: 'map'}, pose: {position: {x: 0.0, y: 0.0, z: 0.0}, orientation: {w: 1.0}}},
+  goal: {header: {frame_id: 'map'}, pose: {position: {x: -5.0, y: -2.0, z: 0.0}, orientation: {w: 1.0}}},
+  tolerance: 0.0
+}"
+
+WEIRD PATH
+ros2 service call /plan_path nav_msgs/srv/GetPlan "{
+  start: {header: {frame_id: 'map'}, pose: {position: {x: 0.0, y: 0.0, z: 0.0}, orientation: {w: 1.0}}},
+  goal: {header: {frame_id: 'map'}, pose: {position: {x: 3.0, y: -2.0, z: 0.0}, orientation: {w: 1.0}}},
+  tolerance: 0.0
+}"
+
+ros2 service call /plan_path nav_msgs/srv/GetPlan "{
+  start: {header: {frame_id: 'map'}, pose: {position: {x: 0.0, y: 0.5, z: 0.0}, orientation: {w: 1.0}}},
+  goal: {header: {frame_id: 'map'}, pose: {position: {x: -5.0, y: -1.0, z: 0.0}, orientation: {w: 1.0}}},
+  tolerance: 0.0
+}"
+
+--------------------------------------
+
 mpc_rbt_ws
 - rosdep install --from-paths src -y -r --ignore-src --rosdistro humble
-
-
-
 
 Spustenie simulatora
 Navigate to the workspace directory (mpc_rbt_ws) and build it:
@@ -35,42 +75,6 @@ ros2 param get /keyboard_control_node speed
 Nastavit param
 ros2 param set /keyboard_control_node speed 1.0
 
---------------------------------------
-RUN SIMULATOR
-source install/setup.bash
-ros2 launch mpc_rbt_simulator simulation.launch.py
-
-RUN RVIZ, LOCALIZATION NODE
-source install/setup.bash
-ros2 launch mpc_rbt_student solution.launch.py
-
-RUN OTHER NODES
-source ~/stud/mpc_rbt_ws/install/setup.bash
-ros2 run mpc_rbt_student PlanningNode
-ros2 run mpc_rbt_student KeyboardControl
-
-PLANNING --------------
-NORM PATH
-ros2 service call /plan_path nav_msgs/srv/GetPlan "{
-  start: {header: {frame_id: 'map'}, pose: {position: {x: 0.0, y: 0.0, z: 0.0}, orientation: {w: 1.0}}},
-  goal: {header: {frame_id: 'map'}, pose: {position: {x: -5.0, y: -2.0, z: 0.0}, orientation: {w: 1.0}}},
-  tolerance: 0.0
-}"
-
-
-
-WEIRD PATH
-ros2 service call /plan_path nav_msgs/srv/GetPlan "{
-  start: {header: {frame_id: 'map'}, pose: {position: {x: 0.0, y: 0.0, z: 0.0}, orientation: {w: 1.0}}},
-  goal: {header: {frame_id: 'map'}, pose: {position: {x: 3.0, y: -2.0, z: 0.0}, orientation: {w: 1.0}}},
-  tolerance: 0.0
-}"
-
-ros2 service call /plan_path nav_msgs/srv/GetPlan "{
-  start: {header: {frame_id: 'map'}, pose: {position: {x: 0.0, y: 0.5, z: 0.0}, orientation: {w: 1.0}}},
-  goal: {header: {frame_id: 'map'}, pose: {position: {x: -5.0, y: -1.0, z: 0.0}, orientation: {w: 1.0}}},
-  tolerance: 0.0
-}"
 
 
 ----GIT-----
