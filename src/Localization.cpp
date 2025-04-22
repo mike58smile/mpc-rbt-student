@@ -10,8 +10,11 @@ LocalizationNode::LocalizationNode() :
     // Odometry message initialization
     odometry_.header.frame_id = "map";
     odometry_.child_frame_id = "base_link";
-    // add code here
 
+    odometry_.pose.pose.orientation.w = 1.0;
+    odometry_.pose.pose.orientation.x = 0.0;
+    odometry_.pose.pose.orientation.y = 0.0;
+    odometry_.pose.pose.orientation.z = 0.0;
 
     // Subscriber for joint_states
     joint_subscriber_ = this->create_subscription<sensor_msgs::msg::JointState>(
@@ -46,33 +49,46 @@ void LocalizationNode::jointCallback(const sensor_msgs::msg::JointState & msg) {
 }
 
 void LocalizationNode::updateOdometry(double left_wheel_vel, double right_wheel_vel, double dt) {
+    const double L = robot_config::HALF_DISTANCE_BETWEEN_WHEELS * 2.0; // celková vzdialenosť medzi kolesami
+    auto right_wheel_vel_lin = robot_config::WHEEL_RADIUS * right_wheel_vel; // lineárna rýchlosť pravého kolesa
+    auto left_wheel_vel_lin = robot_config::WHEEL_RADIUS * left_wheel_vel; // lineárna rýchlosť ľavého kolesa
+    
+    // Výpočet lineárnej a uhlovej rýchlosti
+    double linear_vel = (right_wheel_vel_lin + left_wheel_vel_lin) / 2.0;
+    double angular_vel = (left_wheel_vel_lin - right_wheel_vel_lin) / L;
 
-    double linear = robot_config::WHEEL_RADIUS * (left_wheel_vel + right_wheel_vel) / 2.0;
-    double angular = robot_config::WHEEL_RADIUS * (right_wheel_vel - left_wheel_vel) / (robot_config::HALF_DISTANCE_BETWEEN_WHEELS * 2.0);
-
-
+    // Získaj aktuálnu orientáciu (yaw = theta)
     tf2::Quaternion tf_quat;
-    tf2::fromMsg(odometry_.pose.pose.orientation, tf_quat);
+    tf2::fromMsg(odometry_.pose.pose.orientation, tf_quat); // Konvertuj quaternion na tf2::Quaternion
     double roll, pitch, theta;
     tf2::Matrix3x3(tf_quat).getRPY(roll, pitch, theta);
-
-    theta = theta + angular * dt;
+    
+    // Normalizuj theta
     theta = std::atan2(std::sin(theta), std::cos(theta));
+    
+    // Inkrementálna zmena
+    double d_x = linear_vel * std::cos(theta) * dt;
+    double d_y = linear_vel * std::sin(theta) * dt;
+    double d_theta = angular_vel * dt;
+    
+    // Aktualizuj pozíciu a orientáciu
+    odometry_.pose.pose.position.x += d_x;
+    odometry_.pose.pose.position.y += d_y;
+    theta += d_theta;
+    
+    // Previesť späť do kvaternionu
+    tf2::Quaternion new_quat;
+    new_quat.setRPY(0.0, 0.0, theta);
+    odometry_.pose.pose.orientation = tf2::toMsg(new_quat);
+    
+    odometry_.twist.twist.linear.x = linear_vel;
+    odometry_.twist.twist.angular.z = angular_vel;
 
-    tf2::Quaternion q;
-    q.setRPY(0, 0, 0);
 }
 
 void LocalizationNode::publishOdometry() {
     // Fill the odometry message with dummy data for testing
     odometry_.header.stamp = this->get_clock()->now();
-    odometry_.pose.pose.position.x += 0.1;  // Simulate movement in x
-    odometry_.pose.pose.position.y += 0.0;  // No movement in y
-    odometry_.pose.pose.orientation.z = 0.0;  // No rotation
-    odometry_.pose.pose.orientation.w = 1.0;
-
-    odometry_.twist.twist.linear.x = 0.1;  // Simulate linear velocity
-    odometry_.twist.twist.angular.z = 0.0;  // No angular velocity
 
     // Publish the odometry message
     odometry_publisher_->publish(odometry_);

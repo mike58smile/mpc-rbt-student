@@ -27,10 +27,10 @@ def generate_launch_description():
             output='screen',
             arguments=['-d', rviz_config_path]
         ),
-        Node(
-            package='mpc_rbt_student',
-            executable='PlanningNode',
-            name='planning_node',
-            output='screen'
-        ),
+        # Node(
+        #     package='mpc_rbt_student',
+        #     executable='PlanningNode',
+        #     name='planning_node',
+        #     output='screen'
+        # ),
     ])

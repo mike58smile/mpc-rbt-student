@@ -11,7 +11,7 @@ using namespace std::chrono_literals;
 
 KeyboardControlNode::KeyboardControlNode() : rclcpp::Node("keyboard_control_node") {
     // Declare and initialize the speed parameter
-    this->declare_parameter<double>("speed", 5.0); // Default speed is 0.5
+    this->declare_parameter<double>("speed", 0.5); // Default speed is 0.5
     speed_ = this->get_parameter("speed").as_double();
 
     twist_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
