@@ -11,6 +11,12 @@ LocalizationNode::LocalizationNode() :
     odometry_.header.frame_id = "map";
     odometry_.child_frame_id = "base_link";
 
+    // Set initial position to match simulator
+    odometry_.pose.pose.position.x = -0.5; // <-- set to simulator's initial x
+    odometry_.pose.pose.position.y = 0.0; // <-- set to simulator's initial y
+    odometry_.pose.pose.position.z = 0.095;// <-- set to simulator's initial z
+
+    // Set initial orientation (theta=0)
     odometry_.pose.pose.orientation.w = 1.0;
     odometry_.pose.pose.orientation.x = 0.0;
     odometry_.pose.pose.orientation.y = 0.0;
