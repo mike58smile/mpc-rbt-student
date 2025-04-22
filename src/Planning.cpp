@@ -140,7 +140,9 @@ void PlanningNode::aStar(const geometry_msgs::msg::PoseStamped &start, const geo
             int ny = current->y + d.second;
             if (!isFree(nx, ny) || closedList[idx(nx, ny)]) continue;
 
-            double g_new = current->g + 1.0;
+            // Calculate move cost
+            double move_cost = (std::abs(d.first) + std::abs(d.second) == 2) ? std::sqrt(2.0) : 1.0;
+            double g_new = current->g + move_cost; // double g_new = current->g + 1.0;
             double h_new = heuristic(nx, ny);
             double f_new = g_new + h_new;
 
