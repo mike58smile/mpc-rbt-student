@@ -24,6 +24,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(nav2_msgs REQUIRED)
 find_package(mpc_rbt_simulator REQUIRED)
 
 include_directories(PUBLIC
@@ -39,6 +40,7 @@ set(dependencies
   tf2_geometry_msgs
   tf2
   nav_msgs
+  nav2_msgs
   mpc_rbt_simulator
 )
 add_library(${PROJECT_NAME} SHARED
@@ -66,6 +68,12 @@ add_executable(PlanningNode src/planning_node.cpp)
 target_link_libraries(PlanningNode ${PROJECT_NAME})
 ament_target_dependencies(PlanningNode ${dependencies})
 install(TARGETS PlanningNode DESTINATION lib/${PROJECT_NAME})
+
+# Přidání MotionControlNode
+add_executable(MotionControlNode src/motion_control_node.cpp src/MotionControl.cpp)
+target_link_libraries(MotionControlNode ${PROJECT_NAME})
+ament_target_dependencies(MotionControlNode ${dependencies})
+install(TARGETS MotionControlNode DESTINATION lib/${PROJECT_NAME})
 
 #Define include directories for the compiler
 #include_directories(PUBLIC
