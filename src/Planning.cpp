@@ -45,6 +45,11 @@ void PlanningNode::mapCallback(rclcpp::Client<nav_msgs::srv::GetMap>::SharedFutu
         RCLCPP_INFO(this->get_logger(), "Map points to: %f, %f", map_.info.origin.position.x, map_.info.origin.position.y);
         RCLCPP_INFO(this->get_logger(), "Map resolution: %f", map_.info.resolution);
         RCLCPP_INFO(this->get_logger(), "Map received! Size: %d x %d", map_.info.width, map_.info.height);
+        dilateMap();
+        RCLCPP_INFO(this->get_logger(), "Map dilated!");
+        //map resolution
+        RCLCPP_INFO(this->get_logger(), "Map resolution: %f", map_.info.resolution);
+        RCLCPP_INFO(this->get_logger(), "Map size: %d x %d", map_.info.width, map_.info.height);
     } else {
         RCLCPP_ERROR(this->get_logger(), "Failed to receive map.");
     }
@@ -60,16 +65,36 @@ void PlanningNode::planPath(const std::shared_ptr<nav_msgs::srv::GetPlan::Reques
 }
 
 void PlanningNode::dilateMap() {
-    // add code here
+    // Nastavte poloměr rozšíření překážek (v buňkách)
+    int radius = 5; // např. 2 buňky = 2 * resolution metrů
 
-    // ********
-    // * Help *
-    // ********
-    /*
     nav_msgs::msg::OccupancyGrid dilatedMap = map_;
-    ... processing ...
+    int width = map_.info.width;
+    int height = map_.info.height;
+
+    // Pomocná kopie pro zápis změn
+    std::vector<int8_t> new_data = map_.data;
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            if (map_.data[y * width + x] == 100) { // překážka
+                // Rozšiř do okolí
+                for (int dy = -radius; dy <= radius; ++dy) {
+                    for (int dx = -radius; dx <= radius; ++dx) {
+                        int nx = x + dx;
+                        int ny = y + dy;
+                        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                            if (std::hypot(dx, dy) <= radius) {
+                                new_data[ny * width + nx] = 100;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    dilatedMap.data = new_data;
     map_ = dilatedMap;
-    */
 }
 
 void PlanningNode::aStar(const geometry_msgs::msg::PoseStamped &start, const geometry_msgs::msg::PoseStamped &goal) {
@@ -180,16 +205,37 @@ void PlanningNode::aStar(const geometry_msgs::msg::PoseStamped &start, const geo
 }
 
 void PlanningNode::smoothPath() {
-    // add code here
+    if (path_.poses.size() < 3) {
+        // Pokud je trasa příliš krátká, není co vyhlazovat
+        return;
+    }
 
-    // ********
-    // * Help *
-    // ********
-    /*
-    std::vector<geometry_msgs::msg::PoseStamped> newPath = path_.poses;
-    ... processing ...
-    path_.poses = newPath;
-    */
+    std::vector<geometry_msgs::msg::PoseStamped> smoothedPath;
+    smoothedPath.push_back(path_.poses.front()); // Přidej první bod (start)
+
+    // Parametr pro vyhlazování (čím menší, tím hladší)
+    double smoothingFactor = 0.4;
+
+    for (size_t i = 1; i < path_.poses.size() - 1; ++i) {
+        auto &prev = path_.poses[i - 1].pose.position;
+        auto &current = path_.poses[i].pose.position;
+        auto &next = path_.poses[i + 1].pose.position;
+
+        // Vypočítej nový bod jako vážený průměr sousedních bodů
+        geometry_msgs::msg::PoseStamped smoothedPose;
+        smoothedPose.header = path_.poses[i].header;
+        smoothedPose.pose.position.x = current.x + smoothingFactor * (prev.x + next.x - 2 * current.x);
+        smoothedPose.pose.position.y = current.y + smoothingFactor * (prev.y + next.y - 2 * current.y);
+        smoothedPose.pose.position.z = current.z; // Zůstává nezměněno
+        smoothedPose.pose.orientation = path_.poses[i].pose.orientation; // Orientace zůstává nezměněna
+
+        smoothedPath.push_back(smoothedPose);
+    }
+
+    smoothedPath.push_back(path_.poses.back()); // Přidej poslední bod (cíl)
+
+    // Nahraď původní trasu vyhlazenou verzí
+    path_.poses = smoothedPath;
 }
 
 Cell::Cell(int c, int r) {
