@@ -11,7 +11,7 @@ MotionControlNode::MotionControlNode() :
             std::bind(&MotionControlNode::odomCallback, this, std::placeholders::_1)
         );
         lidar_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-            "/scan", 10,
+            "/tiago_base/Hokuyo_URG_04LX_UG01", 10,
             std::bind(&MotionControlNode::lidarCallback, this, std::placeholders::_1)
         );
         
@@ -48,32 +48,93 @@ MotionControlNode::MotionControlNode() :
     }
 
 void MotionControlNode::checkCollision() {
-    // add code here
+// filepath: /home/student/stud/mpc_rbt_ws/src/mpc-rbt-student/src/MotionControl.cpp
+    // Simple collision avoidance: stop if an obstacle is closer than thresh in front
+    if (laser_scan_.ranges.empty()) return;
 
-    // ********
-    // * Help *
-    // ********
-    /*
-    if (laser_scan_.ranges[i] < thresh) {
-        geometry_msgs::msg::Twist stop;
-        twist_publisher_->publish(stop);
+    const double thresh = 0.15; // [m] stop if obstacle is closer than this
+    const double angle_window = 100.0 * M_PI / 180.0; // +/- 30 deg in front
+
+    collision_detected_ = false;
+    int n = laser_scan_.ranges.size();
+    double angle = laser_scan_.angle_min;
+    for (int i = 0; i < n; ++i, angle += laser_scan_.angle_increment) {
+        // Only check points in front of the robot
+        if (std::abs(angle) < angle_window) {
+            if (laser_scan_.ranges[i] > laser_scan_.range_min &&
+                laser_scan_.ranges[i] < thresh) {
+                // Obstacle detected, stop the robot
+                collision_detected_ = true;
+                geometry_msgs::msg::Twist stop;
+                twist_publisher_->publish(stop);
+                RCLCPP_WARN(this->get_logger(), "Obstacle detected! Stopping.");
+                break;
+            }
+        }
     }
-    */
 }
 
 void MotionControlNode::updateTwist() {
-    // add code here
+// filepath: /home/student/stud/mpc_rbt_ws/src/mpc-rbt-student/src/MotionControl.cpp
+    checkCollision();
+    if (!goal_handle_ || !goal_handle_->is_active() || path_.poses.empty() || collision_detected_) {
+        geometry_msgs::msg::Twist stop;
+        twist_publisher_->publish(stop);
+        return;
+    }
 
-    // ********
-    // * Help *
-    // ********
-    /*
+    // Parametry řízení
+    const double v_max = 0.2; // m/s
+    const double w_max = 0.8; // rad/s
+    const double goal_tolerance = 0.1; // m
+    const double waypoint_tolerance = 0.2; // m
+
+    // Aktuální pozice robota
+    const auto& pos = current_pose_.pose.position;
+    const auto& ori = current_pose_.pose.orientation;
+    double yaw = std::atan2(2.0 * (ori.w * ori.z + ori.x * ori.y),
+                            1.0 - 2.0 * (ori.y * ori.y + ori.z * ori.z));
+
+    // Odškrtávání bodů trasy
+    while (path_.poses.size() > 1) {
+        const auto& wp = path_.poses.front().pose.position;
+        double dist = std::hypot(wp.x - pos.x, wp.y - pos.y);
+        if (dist < waypoint_tolerance) {
+            path_.poses.erase(path_.poses.begin());
+        } else {
+            break;
+        }
+    }
+
+    // Sleduj aktuální cíl (první bod v trase)
+    const auto& target = path_.poses.front().pose.position;
+    double dx = target.x - pos.x;
+    double dy = target.y - pos.y;
+    double distance = std::hypot(dx, dy);
+    double angle_to_goal = std::atan2(dy, dx);
+    double angle_error = angle_to_goal - yaw;
+    if (angle_error > M_PI) angle_error -= 2 * M_PI;
+    if (angle_error < -M_PI) angle_error += 2 * M_PI;
+
+    // Regulace
+    double Kp_ang = 1.2;
+    double Kp_lin = 0.8;
+
     geometry_msgs::msg::Twist twist;
-    twist.angular.z = P * xte;
-    twist.linear.x = v_max;
+    if (std::abs(angle_error) < 0.3) {
+        twist.linear.x = v_max;
+    } else {
+        twist.linear.x = 0.0;
+    }
+    twist.angular.z = std::clamp(Kp_ang * angle_error, -w_max, w_max);
+
+    // Pokud jsme u posledního bodu a blízko cíli, zastav
+    if (path_.poses.size() == 1 && distance < goal_tolerance) {
+        twist.linear.x = 0.0;
+        twist.angular.z = 0.0;
+    }
 
     twist_publisher_->publish(twist);
-    */
 }
 
 rclcpp_action::GoalResponse MotionControlNode::navHandleGoal(const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const nav2_msgs::action::NavigateToPose::Goal> goal) {
@@ -104,7 +165,7 @@ void MotionControlNode::navHandleAccepted(const std::shared_ptr<rclcpp_action::S
 }
 
 void MotionControlNode::execute() {
-    rclcpp::Rate loop_rate(5.0); // 5 Hz
+    rclcpp::Rate loop_rate(50.0); // 5 Hz
     auto feedback = std::make_shared<nav2_msgs::action::NavigateToPose::Feedback>();
 
     while (rclcpp::ok()) {
@@ -114,13 +175,24 @@ void MotionControlNode::execute() {
             return;
         }
 
-        // Zde implementuj řízení podle path_ (např. zavolej updateTwist())
+        // Abort if collision detected
+        if (collision_detected_) {
+            goal_handle_->abort(std::make_shared<nav2_msgs::action::NavigateToPose::Result>());
+            RCLCPP_WARN(this->get_logger(), "Goal aborted due to obstacle.");
+            return;
+        }
 
+        // Zde implementuj řízení podle path_ (např. zavolej updateTwist())
+        updateTwist();
         // Posílej feedback
         goal_handle_->publish_feedback(feedback);
 
-        // Pokud je cíl dosažen:
-        // break;
+        if (path_.poses.size() == 1) {
+            const auto& pos = current_pose_.pose.position;
+            const auto& target = path_.poses.front().pose.position;
+            double distance = std::hypot(target.x - pos.x, target.y - pos.y);
+            if (distance < 0.1) break;
+        }
 
         loop_rate.sleep();
     }
@@ -148,18 +220,21 @@ void MotionControlNode::pathCallback(rclcpp::Client<nav_msgs::srv::GetPlan>::Sha
 }
 
 void MotionControlNode::odomCallback(const nav_msgs::msg::Odometry & msg) {
-    // add code here
+    //RCLCPP_INFO(this->get_logger(), "odomCallback called: x=%.2f y=%.2f", msg.pose.pose.position.x, msg.pose.pose.position.y);
+    // Ulož aktuální odometrii pro řízení
+    current_pose_.header = msg.header;
+    current_pose_.pose = msg.pose.pose;
 
-    // ********
-    // * Help *
-    // ********
-    /*
-    checkCollision();
-    updateTwist();
-    */
-   //current_pose_ = msg; // Ulož aktuální odometrii
+    // Volitelně: kontrola kolizí (pokud implementováno)
+
+    // Pokud je aktivní navigační akce, vypočítej a publikuj rychlosti
+    // if (goal_handle_ && goal_handle_->is_active()) {
+    //     updateTwist();
+    // }
 }
 
 void MotionControlNode::lidarCallback(const sensor_msgs::msg::LaserScan & msg) {
     // add code here
+    //RCLCPP_INFO(this->get_logger(), "lidarCallback called: angle_min=%.2f angle_max=%.2f", msg.angle_min, msg.angle_max);
+    laser_scan_ = msg;
 }

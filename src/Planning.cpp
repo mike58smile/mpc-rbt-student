@@ -66,7 +66,7 @@ void PlanningNode::planPath(const std::shared_ptr<nav_msgs::srv::GetPlan::Reques
 
 void PlanningNode::dilateMap() {
     // Nastavte poloměr rozšíření překážek (v buňkách)
-    int radius = 5; // např. 2 buňky = 2 * resolution metrů
+    int radius = 9; // např. 2 buňky = 2 * resolution metrů
 
     nav_msgs::msg::OccupancyGrid dilatedMap = map_;
     int width = map_.info.width;
@@ -214,7 +214,7 @@ void PlanningNode::smoothPath() {
     smoothedPath.push_back(path_.poses.front()); // Přidej první bod (start)
 
     // Parametr pro vyhlazování (čím menší, tím hladší)
-    double smoothingFactor = 0.4;
+    double smoothingFactor = 0.3;
 
     for (size_t i = 1; i < path_.poses.size() - 1; ++i) {
         auto &prev = path_.poses[i - 1].pose.position;

@@ -1,5 +1,5 @@
 --------------------------------------
-CONSOLE-------
+CONSOLE (cd stud/ws) -------
 RUN SIMULATOR
 source install/setup.bash
 ros2 launch mpc_rbt_simulator simulation.launch.py
@@ -8,15 +8,38 @@ RUN RVIZ, LOCALIZATION NODE
 source install/setup.bash
 ros2 launch mpc_rbt_student solution.launch.py
 
-RUN OTHER NODES
+RUN PlanningNode
 source ~/stud/mpc_rbt_ws/install/setup.bash
 ros2 run mpc_rbt_student PlanningNode
+
+RUN MotionControlNode
+source ~/stud/mpc_rbt_ws/install/setup.bash
+ros2 run mpc_rbt_student MotionControlNode
+
+Blank terminal for building
+source ~/stud/mpc_rbt_ws/install/setup.bash
+colcon build
 --------------
+
 
 CONSOLE-------
 source install/setup.bash
 ros2 run mpc_rbt_student KeyboardControl
+
+CONSOLE-------
+CALL ACTION - FINAL WORKING - ODOVZDANIE
+ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose "{
+  pose: {
+    header: {frame_id: 'map'},
+    pose: {
+      position: {x: -6.3, y: -1.0, z: 0.0},
+      orientation: {w: 1.0}
+    }
+  }
+}"
 --------------
+
+
 
 PLANNING --------------
 NORM PATH
